@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# Remove empty assets directory
+find Assets -depth -type d -empty -delete
