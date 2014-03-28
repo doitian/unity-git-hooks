@@ -19,4 +19,8 @@ a team is collabarating on the same code base.
   generating meta file for empty asset directory, but git does not trace
   directory.
 
+## Usage
 
+Copy files `post-checkout` `post-merge` and `pre-commit` to .git/hooks in your
+git repository. If you also have hooks defined in these files, append them to
+existing files.
