@@ -5,7 +5,7 @@ Git hooks for Unity project.
 To manage a Unity project, the Assets meta file should also been added to
 repository. But sometimes the meta files and the corresponding asset files
 and directories are inconsistent, then meta files will lead to conflicts when
-a team is collabarating on the same code base.
+a team is collaborating on the same code base.
 
 ## Features
 
