@@ -24,3 +24,11 @@ a team is collaborating on the same code base.
 Copy files `post-checkout` `post-merge` and `pre-commit` to .git/hooks in your
 git repository. If you also have hooks defined in these files, append them to
 existing files.
+
+It is assumed that Assets directory is located in the root directory of the
+repository. It can be configured using git config. Following example tells the
+scripts that the assets directory is `client/Assets`.
+
+```
+git config unity3d.assets-dir client/Assets
+```

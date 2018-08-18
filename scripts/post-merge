@@ -1,4 +1,5 @@
 #!/bin/sh
 
+ASSETS_DIR="$(git config --get unity3d.assets-dir || echo "Assets")"
 # Remove empty assets directory
-find Assets -depth -type d -empty -delete
+find "$ASSETS_DIR" -depth -type d -empty -delete

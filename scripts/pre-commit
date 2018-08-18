@@ -7,6 +7,8 @@
 #
 # To enable this hook, rename this file to "pre-commit".
 
+ASSETS_DIR="$(git config --get unity3d.assets-dir || echo "Assets")"
+
 if git rev-parse --verify HEAD >/dev/null 2>&1
 then
 	against=HEAD
@@ -18,7 +20,7 @@ fi
 # Redirect output to stderr.
 exec 1>&2
 
-git diff --cached --name-only --diff-filter=A -z $against -- Assets | while read -d $'\0' f; do
+git diff --cached --name-only --diff-filter=A -z $against -- "$ASSETS_DIR" | while read -d $'\0' f; do
 	ext="${f##*.}"
 	base="${f%.*}"
 
@@ -35,7 +37,7 @@ EOF
 		fi
 	else
 		p="$f"
-		while [ "$p" != "Assets" ]; do
+		while [ "$p" != "$ASSETS_DIR" ]; do
 			if [ $(git ls-files --cached -- "$p.meta" | wc -l) = 0 ]; then
 				cat <<EOF
 Error: Missing meta file.
@@ -56,7 +58,7 @@ if [ "$ret" != 0 ]; then
 	exit "$ret"
 fi
 
-git diff --cached --name-only --diff-filter=D -z $against -- Assets | while read -d $'\0' f; do
+git diff --cached --name-only --diff-filter=D -z $against -- "$ASSETS_DIR" | while read -d $'\0' f; do
 	ext="${f##*.}"
 	base="${f%.*}"
 
@@ -73,7 +75,7 @@ EOF
 		fi
 	else
 		p="$f"
-		while [ "$p" != "Assets" ]; do
+		while [ "$p" != "$ASSETS_DIR" ]; do
 			if [ $(git ls-files --cached -- "$p" | wc -l) = 0 ] && [ $(git ls-files --cached -- "$p.meta" | wc -l) != 0 ]; then
 				cat <<EOF
 Error: Missing meta file.
