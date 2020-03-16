@@ -25,10 +25,21 @@ Copy files `post-checkout` `post-merge` and `pre-commit` to .git/hooks in your
 git repository. If you also have hooks defined in these files, append them to
 existing files.
 
-It is assumed that Assets directory is located in the root directory of the
-repository. It can be configured using git config. Following example tells the
-scripts that the assets directory is `client/Assets`.
-
+It is assumed that Assets directory is located in the root directory of the repository. You doesn't need set path to "Assets" folder manually if you "Assets" folder has position in the same folder as ".git". Example:
+```
+.
++-- ProjectName
+|   +-- .git
+|   +-- Assets
+```
+Otherwise you need set full path relative `.git`. Following example tells the scripts that the assets directory is client/Assets Example:
+```
+.
++-- ProjectName
+|   +-- .git
+|   +-- client
+|   |   +-- Assets
+```
 ```
 git config unity3d.assets-dir client/Assets
 ```
