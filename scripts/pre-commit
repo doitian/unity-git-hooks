@@ -20,7 +20,7 @@ fi
 # Redirect output to stderr.
 exec 1>&2
 
-git diff --cached --name-only --diff-filter=A -z $against -- "$ASSETS_DIR" | while read -d $'\0' f; do
+git -c diff.renames=false diff --cached --name-only --diff-filter=A -z $against -- "$ASSETS_DIR" | while read -d $'\0' f; do
 	ext="${f##*.}"
 	base="${f%.*}"
 	filename="$(basename "$f")"
@@ -59,18 +59,18 @@ if [ "$ret" != 0 ]; then
 	exit "$ret"
 fi
 
-git diff --cached --name-only --diff-filter=D -z $against -- "$ASSETS_DIR" | while read -d $'\0' f; do
+git -c diff.renames=false diff --cached --name-only --diff-filter=D -z $against -- "$ASSETS_DIR" | while read -d $'\0' f; do
 	ext="${f##*.}"
 	base="${f%.*}"
 
 	if [ "$ext" = "meta" ]; then
 		if [ $(git ls-files --cached -- "$base" | wc -l) != 0 ]; then
 			cat <<EOF
-Error: Redudant meta file.
+Error: Missing meta file.
 
 Meta file \`$f' is removed, but \`$base' is still in the git index.
 
-Please remove \`$base' from git as well.
+Please revert the beta file or remove the asset file.
 EOF
 			exit 1
 		fi
@@ -79,7 +79,7 @@ EOF
 		while [ "$p" != "$ASSETS_DIR" ]; do
 			if [ $(git ls-files --cached -- "$p" | wc -l) = 0 ] && [ $(git ls-files --cached -- "$p.meta" | wc -l) != 0 ]; then
 				cat <<EOF
-Error: Missing meta file.
+Error: Redudant meta file.
 
 Asset \`$f' is removed, but \`$p.meta' is still in the git index.
 
