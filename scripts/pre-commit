@@ -28,11 +28,8 @@ git -c diff.renames=false diff --cached --name-only --diff-filter=A -z $against 
 	if [ "$ext" = "meta" ]; then
 		if [ $(git ls-files --cached -- "$base" | wc -l) = 0 ]; then
 			cat <<EOF
-Error: Redudant meta file.
-
-Meta file \`$f' is added, but \`$base' is not in the git index.
-
-Please add \`$base' to git as well.
+Error: Redudant meta file. Meta file '$f' is added, but '$base' is not in the git index.
+Please add '$base' to git as well.
 EOF
 			exit 1
 		fi
@@ -41,11 +38,9 @@ EOF
 		while [ "$p" != "$ASSETS_DIR" ]; do
 			if [ $(git ls-files --cached -- "$p.meta" | wc -l) = 0 ]; then
 				cat <<EOF
-Error: Missing meta file.
-
-Asset \`$f' is added, but \`$p.meta' is not in the git index.
-
-Please add \`$p.meta' to git as well.
+Error: Missing meta file. Asset '$f' is added, but '$p.meta' is not in the git index.
+Please add '$p.meta' to git as well by typing the following:
+git add '$p.meta'
 EOF
 				exit 1
 			fi
@@ -66,11 +61,8 @@ git -c diff.renames=false diff --cached --name-only --diff-filter=D -z $against 
 	if [ "$ext" = "meta" ]; then
 		if [ $(git ls-files --cached -- "$base" | wc -l) != 0 ]; then
 			cat <<EOF
-Error: Missing meta file.
-
-Meta file \`$f' is removed, but \`$base' is still in the git index.
-
-Please revert the beta file or remove the asset file.
+Error: Missing meta file. Meta file '$f' is removed, but '$base' is still in the git index.
+Please revert the meta file or remove the asset file.
 EOF
 			exit 1
 		fi
@@ -79,11 +71,9 @@ EOF
 		while [ "$p" != "$ASSETS_DIR" ]; do
 			if [ $(git ls-files --cached -- "$p" | wc -l) = 0 ] && [ $(git ls-files --cached -- "$p.meta" | wc -l) != 0 ]; then
 				cat <<EOF
-Error: Redudant meta file.
-
-Asset \`$f' is removed, but \`$p.meta' is still in the git index.
-
-Please remove \`$p.meta' from git as well.
+Error: Redudant meta file. Asset '$f' is removed, but '$p.meta' is still in the git index.
+Please remove '$p.meta' from git as well by typing the following: 
+git rm '$p.meta'
 EOF
 				exit 1
 			fi
