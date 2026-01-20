@@ -45,9 +45,5 @@ jobs:
         if: runner.os != 'Windows'
         run: git --version
       
-      - name: Make test script executable (Unix)
-        if: runner.os != 'Windows'
-        run: chmod +x test_hooks.py
-      
       - name: Run Python tests
         run: python test_hooks.py
