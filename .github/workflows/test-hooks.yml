@@ -16,6 +16,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         install-method: ['install-hooks.py', 'install-hooks.sh']
+        exclude:
+          - os: windows-latest
+            install-method: 'install-hooks.sh'
     
     steps:
       - name: Checkout repository
