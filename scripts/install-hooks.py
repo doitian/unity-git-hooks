@@ -8,6 +8,9 @@ try:
     import sys
     import os
 
+    # Automatically detect the script directory (like the shell script does)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
     def read_file(path):
         print("Reading file: " + path)
         with open(path, 'r') as content_file:
@@ -48,9 +51,9 @@ try:
 
     print("Reading hooks...")
     print()
-    post_checkout_commands = read_file("post-checkout")
-    post_merge_commands = read_file("post-merge")
-    pre_commit_commands = read_file("pre-commit")
+    post_checkout_commands = read_file(os.path.join(script_dir, "post-checkout"))
+    post_merge_commands = read_file(os.path.join(script_dir, "post-merge"))
+    pre_commit_commands = read_file(os.path.join(script_dir, "pre-commit"))
     print()
     print()
 

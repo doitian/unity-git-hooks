@@ -101,7 +101,7 @@ class GitHooksTestCase(unittest.TestCase):
         Hooks will be run automatically by git
         
         Uses the installation method specified by INSTALL_HOOKS_METHOD environment variable.
-        If not set, defaults to manual copy (original behavior).
+        If not set, defaults to install-hooks.py.
         """
         install_method = os.environ.get('INSTALL_HOOKS_METHOD', 'install-hooks.py')
         
@@ -139,8 +139,8 @@ class GitHooksTestCase(unittest.TestCase):
                         check=True
                     )
                 else:
-                    # Fallback to manual copy if bash is not available on Windows
-                    self._manual_install_hooks(script_dir, hooks_dir)
+                    # Raise error if bash is not available on Windows
+                    raise RuntimeError("Bash is required to run install-hooks.sh on Windows, but it was not found")
             else:
                 subprocess.run(
                     [str(install_script)],
@@ -151,17 +151,16 @@ class GitHooksTestCase(unittest.TestCase):
         elif install_method == 'install-hooks.py':
             # Use the Python script to install hooks
             install_script = script_dir / 'install-hooks.py'
-            # The install-hooks.py script expects user input, so we need to provide it
-            # We'll use subprocess with stdin to provide the repo path
+            # The install-hooks.py script expects user input for the repo path
             # and a second input for the "Press any key to exit" prompt
-            # Note: install-hooks.py expects to be run from the scripts directory
+            # Now that install-hooks.py detects its directory automatically,
+            # we can run it from anywhere
             subprocess.run(
-                [sys.executable, str(install_script.name)],
+                [sys.executable, str(install_script)],
                 input=self.repo_dir + '\n\n',  # First for repo path, second for exit prompt
                 text=True,
                 check=True,
-                capture_output=True,
-                cwd=str(script_dir)  # Run from scripts directory
+                capture_output=True
             )
             
             # The install-hooks.py script doesn't set executable permissions on Unix
@@ -174,24 +173,10 @@ class GitHooksTestCase(unittest.TestCase):
                         os.chmod(hook_path, 0o755)
         
         else:
-            # Manual installation (default/original behavior)
-            self._manual_install_hooks(script_dir, hooks_dir)
-    
-    def _manual_install_hooks(self, script_dir, hooks_dir):
-        """
-        Manually copy hook files to the hooks directory
-        This is the original installation method
-        """
-        # Copy hook files
-        hooks = ['pre-commit', 'post-checkout', 'post-merge']
-        for hook in hooks:
-            src = script_dir / hook
-            dst = os.path.join(hooks_dir, hook)
-            if src.exists():
-                shutil.copy2(str(src), dst)
-                # Make executable on Unix systems
-                if platform.system() != 'Windows':
-                    os.chmod(dst, 0o755)
+            # Unknown installation method
+            raise ValueError(f"Unknown installation method: {install_method}. "
+                           f"Expected 'install-hooks.py' or 'install-hooks.sh'")
+
 
 
 class TestPreCommitHook(GitHooksTestCase):
