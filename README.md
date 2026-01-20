@@ -43,3 +43,17 @@ Otherwise you need set full path relative `.git`. Following example tells the sc
 ```
 git config unity3d.assets-dir client/Assets
 ```
+
+## Testing
+
+This project includes automated tests that work on Linux, macOS, and Windows.
+
+To run tests locally:
+
+```bash
+python3 test_hooks.py
+```
+
+For more information about testing, see [TESTING.md](TESTING.md).
+
+The tests are automatically run on GitHub Actions for all three platforms.
