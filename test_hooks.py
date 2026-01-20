@@ -120,8 +120,8 @@ class GitHooksTestCase(unittest.TestCase):
                 if hook_script.exists():
                     # Check if the file is executable
                     if not os.access(hook_script, os.X_OK):
-                        raise RuntimeError(f"Hook script {hook} is not executable in the git index. "
-                                         f"Run: git update-index --chmod=+x scripts/{hook}")
+                        raise RuntimeError(f"Hook script {hook} is not executable. "
+                                         f"The hook scripts must be executable in the repository.")
         
         if install_method == 'install-hooks.sh':
             # Use the shell script to install hooks
