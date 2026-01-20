@@ -121,7 +121,6 @@ class GitHooksTestCase(unittest.TestCase):
                 bash_paths = [
                     os.path.expandvars(r'%PROGRAMFILES%\Git\bin\bash.exe'),
                     os.path.expandvars(r'%PROGRAMFILES(X86)%\Git\bin\bash.exe'),
-                    r'C:\Program Files\Git\bin\bash.exe',
                 ]
                 bash_cmd = None
                 for bash_path in bash_paths:
