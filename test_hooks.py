@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+"""
+Test suite for Unity Git Hooks
+Replaces BATS-based tests with Python-based tests that work on macOS and Windows
+"""
+
+import os
+import platform
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+
+class GitHooksTestCase(unittest.TestCase):
+    """Base test case with setup and teardown for git repository"""
+    
+    def setUp(self):
+        """Create a temporary git repository for testing"""
+        # Create temporary directory
+        self.test_dir = tempfile.mkdtemp(prefix='unity-git-hooks-test-')
+        self.repo_dir = os.path.join(self.test_dir, 'repo')
+        os.makedirs(self.repo_dir)
+        
+        # Initialize git repository
+        self._run_git(['init'])
+        self._run_git(['config', 'user.email', 'test@ci'])
+        self._run_git(['config', 'user.name', 'test'])
+        
+        # Create Assets directory
+        self.assets_dir = os.path.join(self.repo_dir, 'Assets')
+        os.makedirs(self.assets_dir)
+        
+        # Install git hooks so they run automatically
+        self._install_hooks()
+    
+    def tearDown(self):
+        """Clean up temporary directory"""
+        if os.path.exists(self.test_dir):
+            # On Windows, git may keep file handles open, so we need to handle errors
+            def handle_remove_readonly(func, path, exc):
+                """Error handler for Windows readonly files"""
+                import stat
+                if not os.access(path, os.W_OK):
+                    # Make the file writable and try again
+                    os.chmod(path, stat.S_IWUSR)
+                    func(path)
+                else:
+                    raise
+            
+            shutil.rmtree(self.test_dir, onerror=handle_remove_readonly)
+    
+    def _run_git(self, args, check=True, capture_output=False):
+        """
+        Run git command in the test repository
+        
+        On Windows with Scoop mingit, use PowerShell to invoke git
+        """
+        if platform.system() == 'Windows':
+            # Check if git is available via Scoop mingit
+            git_cmd = self._find_git_windows()
+            cmd = [git_cmd] + args
+        else:
+            cmd = ['git'] + args
+        
+        result = subprocess.run(
+            cmd,
+            cwd=self.repo_dir,
+            check=check,
+            capture_output=capture_output,
+            text=True
+        )
+        
+        if capture_output:
+            return result
+        return result.returncode
+    
+    def _find_git_windows(self):
+        """
+        Find git executable on Windows
+        Prioritize Scoop mingit installation
+        """
+        # Try Scoop mingit first
+        scoop_git = os.path.expandvars(r'%USERPROFILE%\scoop\apps\mingit\current\cmd\git.exe')
+        if os.path.exists(scoop_git):
+            return scoop_git
+        
+        # Try Scoop shims directory
+        scoop_shim = os.path.expandvars(r'%USERPROFILE%\scoop\shims\git.exe')
+        if os.path.exists(scoop_shim):
+            return scoop_shim
+        
+        # Fallback to system git
+        return shutil.which('git') or 'git'
+    
+    def _install_hooks(self):
+        """
+        Install git hooks into the test repository
+        Hooks will be run automatically by git
+        """
+        # Get the scripts directory
+        script_dir = Path(__file__).parent / 'scripts'
+        
+        # Create hooks directory if it doesn't exist
+        hooks_dir = os.path.join(self.repo_dir, '.git', 'hooks')
+        os.makedirs(hooks_dir, exist_ok=True)
+        
+        # Copy hook files
+        hooks = ['pre-commit', 'post-checkout', 'post-merge']
+        for hook in hooks:
+            src = script_dir / hook
+            dst = os.path.join(hooks_dir, hook)
+            if src.exists():
+                shutil.copy2(str(src), dst)
+                # Make executable on Unix systems
+                if platform.system() != 'Windows':
+                    os.chmod(dst, 0o755)
+
+
+class TestPreCommitHook(GitHooksTestCase):
+    """Test cases for pre-commit hook"""
+    
+    def test_ensuring_meta_is_committed(self):
+        """Test that missing .meta file causes pre-commit to fail"""
+        # Create an asset file without .meta
+        asset_file = os.path.join(self.assets_dir, 'assets')
+        Path(asset_file).touch()
+        self._run_git(['add', 'Assets/assets'])
+        
+        # Try to commit - pre-commit hook should fail automatically
+        result = self._run_git(['commit', '-m', 'test commit'], check=False, capture_output=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Error: Missing meta file', result.stderr)
+        
+        # Now add the .meta file
+        meta_file = os.path.join(self.assets_dir, 'assets.meta')
+        Path(meta_file).touch()
+        self._run_git(['add', 'Assets/assets.meta'])
+        
+        # Try to commit again - should succeed
+        result = self._run_git(['commit', '-m', 'test commit'], check=False, capture_output=True)
+        self.assertEqual(result.returncode, 0)
+    
+    def test_ignoring_assets_file_starting_with_dot(self):
+        """Test that asset files starting with dot are ignored"""
+        # Create a hidden asset file (no .meta needed)
+        hidden_file = os.path.join(self.assets_dir, '.assets')
+        Path(hidden_file).touch()
+        self._run_git(['add', '--force', 'Assets/.assets'])
+        
+        # Commit should succeed via pre-commit hook
+        result = self._run_git(['commit', '-m', 'test commit'], check=False, capture_output=True)
+        self.assertEqual(result.returncode, 0)
+    
+    def test_renaming_directory(self):
+        """Test that renaming a directory requires updating .meta files"""
+        # Create directory with .gitkeep and .meta
+        dir_path = os.path.join(self.assets_dir, 'dir')
+        os.makedirs(dir_path)
+        
+        gitkeep_file = os.path.join(dir_path, '.gitkeep')
+        Path(gitkeep_file).touch()
+        
+        meta_file = os.path.join(self.assets_dir, 'dir.meta')
+        Path(meta_file).touch()
+        
+        self._run_git(['add', '--force', '--all'])
+        self._run_git(['commit', '-m', 'add Assets/dir'])
+        
+        # Rename the directory
+        new_dir_path = os.path.join(self.assets_dir, 'dir-new')
+        shutil.move(dir_path, new_dir_path)
+        self._run_git(['add', '--force', '--all'])
+        
+        # Try to commit - pre-commit hook should fail because old .meta still exists
+        result = self._run_git(['commit', '-m', 'rename dir'], check=False, capture_output=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Error: Redudant meta file', result.stderr)
+
+
+def run_tests():
+    """Run all tests"""
+    # Discover and run tests
+    loader = unittest.TestLoader()
+    suite = loader.loadTestsFromModule(sys.modules[__name__])
+    runner = unittest.TextTestRunner(verbosity=2)
+    result = runner.run(suite)
+    
+    # Return exit code based on test results
+    return 0 if result.wasSuccessful() else 1
+
+
+if __name__ == '__main__':
+    sys.exit(run_tests())
