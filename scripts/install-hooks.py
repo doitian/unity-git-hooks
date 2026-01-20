@@ -74,6 +74,6 @@ try:
 
 except Exception as ex:
     print()
-    print("Error occured: " + str(ex))
+    print("Error occurred: " + str(ex))
         
 input("Press any key to exit.")
