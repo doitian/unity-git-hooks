@@ -112,6 +112,17 @@ class GitHooksTestCase(unittest.TestCase):
         hooks_dir = os.path.join(self.repo_dir, '.git', 'hooks')
         os.makedirs(hooks_dir, exist_ok=True)
         
+        # On non-Windows, ensure hook scripts are executable in the git index
+        if platform.system() != 'Windows':
+            hooks = ['pre-commit', 'post-checkout', 'post-merge']
+            for hook in hooks:
+                hook_script = script_dir / hook
+                if hook_script.exists():
+                    # Check if the file is executable
+                    if not os.access(hook_script, os.X_OK):
+                        raise RuntimeError(f"Hook script {hook} is not executable in the git index. "
+                                         f"Run: git update-index --chmod=+x scripts/{hook}")
+        
         if install_method == 'install-hooks.sh':
             # Use the shell script to install hooks
             install_script = script_dir / 'install-hooks.sh'
@@ -162,15 +173,6 @@ class GitHooksTestCase(unittest.TestCase):
                 check=True,
                 capture_output=True
             )
-            
-            # The install-hooks.py script doesn't set executable permissions on Unix
-            # We need to do this manually
-            if platform.system() != 'Windows':
-                hooks = ['pre-commit', 'post-checkout', 'post-merge']
-                for hook in hooks:
-                    hook_path = os.path.join(hooks_dir, hook)
-                    if os.path.exists(hook_path):
-                        os.chmod(hook_path, 0o755)
         
         else:
             # Unknown installation method
