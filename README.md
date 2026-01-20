@@ -54,6 +54,4 @@ To run tests locally:
 python3 test_hooks.py
 ```
 
-For more information about testing, see [TESTING.md](TESTING.md).
-
 The tests are automatically run on GitHub Actions for all three platforms.
