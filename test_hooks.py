@@ -39,7 +39,18 @@ class GitHooksTestCase(unittest.TestCase):
     def tearDown(self):
         """Clean up temporary directory"""
         if os.path.exists(self.test_dir):
-            shutil.rmtree(self.test_dir)
+            # On Windows, git may keep file handles open, so we need to handle errors
+            def handle_remove_readonly(func, path, exc):
+                """Error handler for Windows readonly files"""
+                import stat
+                if not os.access(path, os.W_OK):
+                    # Make the file writable and try again
+                    os.chmod(path, stat.S_IWUSR)
+                    func(path)
+                else:
+                    raise
+            
+            shutil.rmtree(self.test_dir, onerror=handle_remove_readonly)
     
     def _run_git(self, args, check=True, capture_output=False):
         """
