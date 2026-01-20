@@ -99,7 +99,12 @@ class GitHooksTestCase(unittest.TestCase):
         """
         Install git hooks into the test repository
         Hooks will be run automatically by git
+        
+        Uses the installation method specified by INSTALL_HOOKS_METHOD environment variable.
+        If not set, defaults to install-hooks.py.
         """
+        install_method = os.environ.get('INSTALL_HOOKS_METHOD', 'install-hooks.py')
+        
         # Get the scripts directory
         script_dir = Path(__file__).parent / 'scripts'
         
@@ -107,16 +112,68 @@ class GitHooksTestCase(unittest.TestCase):
         hooks_dir = os.path.join(self.repo_dir, '.git', 'hooks')
         os.makedirs(hooks_dir, exist_ok=True)
         
-        # Copy hook files
-        hooks = ['pre-commit', 'post-checkout', 'post-merge']
-        for hook in hooks:
-            src = script_dir / hook
-            dst = os.path.join(hooks_dir, hook)
-            if src.exists():
-                shutil.copy2(str(src), dst)
-                # Make executable on Unix systems
-                if platform.system() != 'Windows':
-                    os.chmod(dst, 0o755)
+        if install_method == 'install-hooks.sh':
+            # Use the shell script to install hooks
+            install_script = script_dir / 'install-hooks.sh'
+            if platform.system() == 'Windows':
+                # On Windows, we need bash to run the shell script
+                # Try Git Bash first
+                bash_paths = [
+                    os.path.expandvars(r'%PROGRAMFILES%\Git\bin\bash.exe'),
+                    os.path.expandvars(r'%PROGRAMFILES(X86)%\Git\bin\bash.exe'),
+                ]
+                bash_cmd = None
+                for bash_path in bash_paths:
+                    if os.path.exists(bash_path):
+                        bash_cmd = bash_path
+                        break
+                
+                if not bash_cmd:
+                    bash_cmd = shutil.which('bash')
+                
+                if bash_cmd:
+                    subprocess.run(
+                        [bash_cmd, str(install_script)],
+                        cwd=self.repo_dir,
+                        check=True
+                    )
+                else:
+                    # Raise error if bash is not available on Windows
+                    raise RuntimeError("Bash is required to run install-hooks.sh on Windows, but it was not found")
+            else:
+                subprocess.run(
+                    [str(install_script)],
+                    cwd=self.repo_dir,
+                    check=True
+                )
+        
+        elif install_method == 'install-hooks.py':
+            # Use the Python script to install hooks
+            install_script = script_dir / 'install-hooks.py'
+            # The install-hooks.py script now auto-detects its directory and can be run from anywhere.
+            # It still requires user input for the repo path and exit confirmation.
+            subprocess.run(
+                [sys.executable, str(install_script)],
+                input=self.repo_dir + '\n\n',  # First for repo path, second for exit prompt
+                text=True,
+                check=True,
+                capture_output=True
+            )
+            
+            # The install-hooks.py script doesn't set executable permissions
+            # We need to do this after installation on Unix systems
+            if platform.system() != 'Windows':
+                hooks = ['pre-commit', 'post-checkout', 'post-merge']
+                for hook in hooks:
+                    hook_path = os.path.join(hooks_dir, hook)
+                    if os.path.exists(hook_path):
+                        os.chmod(hook_path, 0o755)
+        
+        else:
+            # Unknown installation method
+            raise ValueError(f"Unknown installation method: {install_method}. "
+                           f"Expected 'install-hooks.py' or 'install-hooks.sh'")
+
 
 
 class TestPreCommitHook(GitHooksTestCase):
