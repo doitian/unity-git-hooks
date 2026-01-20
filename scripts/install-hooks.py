@@ -29,10 +29,6 @@ try:
         with open(path, "a+") as f:
             print("Appending.")
             f.write(str(content))
-        
-        # On Unix systems, make the hook executable
-        if os.name != 'nt':  # Not Windows
-            os.chmod(path, 0o755)
 
 
     print("This script will either create or append the hooks to your repository.")
